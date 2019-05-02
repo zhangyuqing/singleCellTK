@@ -10,7 +10,8 @@
 #' Required
 #' @param condition The column in the annotation data that corresponds to
 #' condition. Optional
-#'
+#' @param log_dat Default FALSE, if TRUE log transform the assay
+#' 
 #' @return A boxplot of variation explained by batch, condition, and
 #' batch+condition (if applicable).
 #' @export
@@ -23,7 +24,7 @@
 #' }
 #'
 plotBatchVariance <- function(inSCE, useAssay="logcounts", batch,
-                              condition=NULL){
+                              condition=NULL, log_dat=FALSE){
   nlb <- nlevels(as.factor(SingleCellExperiment::colData(inSCE)[, batch]))
   if (nlb <= 1){
     batchMod <- matrix(rep(1, ncol(inSCE)), ncol = 1)
@@ -45,11 +46,14 @@ plotBatchVariance <- function(inSCE, useAssay="logcounts", batch,
   }
 
   mod <- cbind(condMod, batchMod[, -1])
-
-  condTest <- batchqc_f.pvalue(SummarizedExperiment::assay(inSCE, useAssay),
-                                mod, batchMod)
-  batchTest <- batchqc_f.pvalue(
-    SummarizedExperiment::assay(inSCE, useAssay), mod, condMod)
+  
+  dat <- SummarizedExperiment::assay(inSCE, useAssay)
+  if(log_dat){
+    print("logging data")
+    dat <- log(dat + 0.25)
+  }
+  condTest <- batchqc_f.pvalue(dat, mod, batchMod)
+  batchTest <- batchqc_f.pvalue(dat, mod, condMod)
 
   r2Full <- condTest$r2Full
   condR2 <- batchTest$r2Reduced

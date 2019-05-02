@@ -15,6 +15,7 @@ shinyServer(function(input, output, session) {
     counts = getShinyOption("inputSCEset"),
     original = getShinyOption("inputSCEset"),
     combatstatus = "",
+    combatseqstatus = "",
     diffexgenelist = NULL,
     gsvaRes = NULL,
     gsvaLimma = NULL,
@@ -54,6 +55,8 @@ shinyServer(function(input, output, session) {
     updateSelectInput(session, "combatBatchVar",
                       choices = pdataOptions)
     updateSelectInput(session, "combatConditionVar",
+                      choices = pdataOptions)
+    updateSelectInput(session, "combatCovariates",
                       choices = pdataOptions)
     updateSelectInput(session, "hurdlecondition",
                       choices = pdataOptions)
@@ -105,7 +108,9 @@ shinyServer(function(input, output, session) {
   updateAssayInputs <- function(){
     currassays <- names(assays(vals$counts))
     updateSelectInput(session, "dimRedAssaySelect", choices = currassays)
+    updateSelectInput(session, "batchAssay", choices = currassays)
     updateSelectInput(session, "combatAssay", choices = currassays)
+    #updateSelectInput(session, "combatseqAssay", choices = currassays)
     updateSelectInput(session, "diffexAssay", choices = currassays)
     updateSelectInput(session, "mastAssay", choices = currassays)
     updateSelectInput(session, "pathwayAssay", choices = currassays)
@@ -209,6 +214,7 @@ shinyServer(function(input, output, session) {
       }
       vals$diffexheatmapplot <- NULL
       vals$combatstatus <- ""
+      vals$combatseqstatus <- ""
       vals$diffexgenelist <- NULL
       vals$gsvaRes <- NULL
       vals$gsvaLimma <- NULL
@@ -309,6 +315,7 @@ shinyServer(function(input, output, session) {
       updateNumSamples()
       vals$diffexheatmapplot <- NULL
       vals$combatstatus <- ""
+      vals$combatseqstatus <- ""
       vals$diffexgenelist <- NULL
       vals$gsvaRes <- NULL
       vals$gsvaLimma <- NULL
@@ -346,6 +353,7 @@ shinyServer(function(input, output, session) {
                                     minimumDetectGenes = input$minDetectGene) #TODO: user decides to filter spikeins
         vals$diffexheatmapplot <- NULL
         vals$combatstatus <- ""
+        vals$combatseqstatus <- ""
         vals$diffexgenelist <- NULL
         vals$gsvaRes <- NULL
         vals$gsvaLimma <- NULL
@@ -378,6 +386,7 @@ shinyServer(function(input, output, session) {
                         choices = colnames(vals$counts))
       vals$diffexheatmapplot <- NULL
       vals$combatstatus <- ""
+      vals$combatseqstatus <- ""
       vals$diffexgenelist <- NULL
       vals$gsvaRes <- NULL
       vals$gsvaLimma <- NULL
@@ -443,6 +452,7 @@ shinyServer(function(input, output, session) {
       vals$visplotobject <- NULL
       vals$diffexheatmapplot <- NULL
       vals$combatstatus <- ""
+      vals$combatseqstatus <- ""
       vals$gsvaLimma <- NULL
       vals$diffexBmName <- NULL
       diffExValues$diffExList <- NULL
@@ -940,7 +950,7 @@ shinyServer(function(input, output, session) {
   }, height = 600)
 
   #-----------------------------------------------------------------------------
-  # Page 4: Batch Correction
+  # Page 4: Batch Effect Diagnostics & Adjustment
   #-----------------------------------------------------------------------------
 
   output$selectCombatRefBatchUI <- renderUI({
@@ -951,62 +961,115 @@ shinyServer(function(input, output, session) {
       }
     }
   })
-
+  
   observeEvent(input$combatRun, {
     if (is.null(vals$counts)){
       shinyalert::shinyalert("Error!", "Upload data first.", type = "error")
-    }
-    else{
+    } else {
       withBusyIndicatorServer("combatRun", {
-        if (input$batchMethod == "ComBat"){
-          #check for zeros
-          if (any(rowSums(assay(vals$counts, input$combatAssay)) == 0)){
-            shinyalert::shinyalert("Error!", "Rows with a sum of zero found. Filter data to continue.", type = "error")
-          } else {
-            saveassayname <- gsub(" ", "_", input$combatSaveAssay)
-            if (input$combatRef){
-              assay(vals$counts, saveassayname) <-
-                ComBatSCE(inSCE = vals$counts, batch = input$combatBatchVar,
-                          useAssay = input$combatAssay,
-                          par.prior = input$combatParametric,
-                          covariates = input$combatConditionVar,
-                          mean.only = input$combatMeanOnly,
-                          ref.batch = input$combatRefBatch)
-            } else {
-              assay(vals$counts, saveassayname) <-
-                ComBatSCE(inSCE = vals$counts, batch = input$combatBatchVar,
-                          useAssay = input$combatAssay,
-                          par.prior = input$combatParametric,
-                          covariates = input$combatConditionVar,
-                          mean.only = input$combatMeanOnly)
-            }
-            updateAssayInputs()
-            vals$combatstatus <- "ComBat Complete"
-          }
+        #check for zeros
+        if (any(rowSums(assay(vals$counts, input$combatAssay)) == 0)){
+          shinyalert::shinyalert("Error!", "Rows with a sum of zero found. Filter data to continue.", type = "error")
         } else {
-          shinyalert::shinyalert("Error!", "Unsupported Batch Correction Method", type = "error")
-        }
+          if (input$batchMethod == "ComBat"){
+            print('combat')
+            saveassayname <- gsub(" ", "_", input$combatSaveAssay)
+            group = NULL
+            covariates = c(input$combatConditionVar, input$combatCovariates)
+            useAssay = input$combatAssay
+            par.prior = input$combatParametric
+            mean.only = input$combatMeanOnly
+            ref.batch = input$combatRefBatch
+            shrink = NULL
+            gene.subset.n = NULL
+          } else if (input$batchMethod == "ComBat-Seq"){
+            print('combat-seq')
+            saveassayname <- gsub(" ", "_", input$combatseqSaveAssay)
+            group = input$combatConditionVar
+            covariates = input$combatCovariates
+            mean.only = NULL
+            ref.batch = NULL
+            shrink = input$combatseqShrink
+            gene.subset.n = as.numeric(input$combatseqGeneSubsetN)
+          } else {
+            shinyalert::shinyalert("Error!", "Unsupported Batch Correction Method", type = "error")
+          }
+          
+          assay(vals$counts, saveassayname) <-
+            batchSCE(inSCE = vals$counts, 
+                     batch = input$combatBatchVar,
+                     bea_method = input$batchMethod,
+                     group = group, covariates = covariates, useAssay = useAssay,
+                     par.prior = par.prior, mean.only = mean.only, ref.batch = ref.batch,
+                     shrink = shrink, gene.subset.n = gene.subset.n)
+          
+          updateAssayInputs()
+          
+          if (input$batchMethod == "ComBat"){
+            vals$combatstatus <- "ComBat Complete"
+          } else if (input$batchMethod == "ComBat-Seq") {
+            vals$combatseqstatus <- "ComBat-Seq Complete"
+          }
+        } 
       })
+    }  
+    
+    if (input$batchMethod == "ComBat"){
+      output$combatStatus <- renderUI({
+        h2(vals$combatstatus)
+      })
+      output$combatBoxplot <- renderPlot({
+        if (!is.null(vals$counts) &
+            !is.null(input$combatBatchVar) &
+            !is.null(input$combatConditionVar) &
+            input$combatBatchVar != "none" &
+            input$combatConditionVar != "none" &
+            input$combatBatchVar != input$combatConditionVar){
+          plotBatchVariance(inSCE = vals$counts,
+                            useAssay = input$combatSaveAssay,
+                            batch = input$combatBatchVar,
+                            condition = input$combatConditionVar)
+        }
+      }, height = 600)
+      
+    } else if (input$batchMethod == "ComBat-Seq"){
+      output$combatseqStatus <- renderUI({
+        h2(vals$combatseqstatus)
+      })
+      output$combatseqBoxplot <- renderPlot({
+        if (!is.null(vals$counts) &
+            !is.null(input$combatBatchVar) &
+            !is.null(input$combatConditionVar) &
+            input$combatBatchVar != "none" &
+            input$combatConditionVar != "none" &
+            input$combatBatchVar != input$combatConditionVar){
+          plotBatchVariance(inSCE = vals$counts,
+                            useAssay = input$combatseqSaveAssay,
+                            batch = input$combatBatchVar,
+                            condition = input$combatConditionVar,
+                            log_dat = TRUE)
+        }
+      }, height = 600)
     }
   })
-
-  output$combatStatus <- renderUI({
-    h2(vals$combatstatus)
+  
+  observeEvent(input$visBatch, {
+    output$batchBoxplot <- renderPlot({
+      if (!is.null(vals$counts) &
+          !is.null(input$batchVarPlot) &
+          !is.null(input$conditionVarPlot) &
+          input$batchVarPlot != "none" &
+          input$conditionVarPlot != "none" &
+          input$batchVarPlot != input$conditionVarPlot){
+        plotBatchVariance(inSCE = vals$counts,
+                          useAssay = input$batchAssay,
+                          batch = input$batchVarPlot,
+                          condition = input$conditionVarPlot)
+      }
+    }, height = 600)
   })
 
-  output$combatBoxplot <- renderPlot({
-    if (!is.null(vals$counts) &
-        !is.null(input$batchVarPlot) &
-        !is.null(input$conditionVarPlot) &
-        input$batchVarPlot != "none" &
-        input$conditionVarPlot != "none" &
-        input$batchVarPlot != input$conditionVarPlot){
-      plotBatchVariance(inSCE = vals$counts,
-                        useAssay = input$combatAssay,
-                        batch = input$batchVarPlot,
-                        condition = input$conditionVarPlot)
-    }
-  }, height = 600)
+
 
   #-----------------------------------------------------------------------------
   # Page 5.1: Differential Expression

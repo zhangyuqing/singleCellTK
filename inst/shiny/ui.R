@@ -108,7 +108,7 @@ shinyUI(
       tabPanel("Genewise Visualization", shinyPanelVis),
       tabPanel("Samplewise Vis & Clustering", shinyPanelCluster)
     ),
-    tabPanel("Batch Correction", shinyPanelBatchcorrect),
+    tabPanel("Batch Effect Diagnostics & Adjustment", shinyPanelBatchcorrect),
     navbarMenu(
       "Differential Expression",
       tabPanel("Differential Expression", shinyPanelDiffex),

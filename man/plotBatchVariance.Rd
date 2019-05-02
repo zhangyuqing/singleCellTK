@@ -6,7 +6,7 @@
 in the data}
 \usage{
 plotBatchVariance(inSCE, useAssay = "logcounts", batch,
-  condition = NULL)
+  condition = NULL, log_dat = FALSE)
 }
 \arguments{
 \item{inSCE}{Input SCtkExperiment object. Required}
@@ -18,6 +18,8 @@ Required}
 
 \item{condition}{The column in the annotation data that corresponds to
 condition. Optional}
+
+\item{log_dat}{Default FALSE, if TRUE log transform the assay}
 }
 \value{
 A boxplot of variation explained by batch, condition, and
