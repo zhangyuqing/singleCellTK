@@ -61,7 +61,7 @@ shinyPanelBatchcorrect <- fluidPage(
                 # combat-seq
                 conditionalPanel(
                   condition = sprintf("input['%s'] == 'ComBat-Seq'", "batchMethod"),
-                  checkboxInput("combatseqShrink", "Use Empirical Bayes Estimation:", value=FALSE),
+                  checkboxInput("combatseqShrink", "Use Empirical Bayes Estimation", value=FALSE),
                   conditionalPanel(
                     condition = sprintf("input['%s']", "combatseqShrink"),
                     textInput("combatseqGeneSubsetN", "Enter Number of Genes for Empirical Bayes:", "100")

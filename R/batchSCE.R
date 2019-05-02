@@ -317,6 +317,7 @@ ComBatSeqSCE <- function(inSCE, batch, group=NULL, covariates=NULL,
                                                           new_mu=new_mu, new_phi=new_phi)
   }
   
+  storage.mode(adjust_counts) <- "integer"
   dimnames(adjust_counts) <- dimnames(dat)
   return(adjust_counts)
 }
@@ -372,7 +373,7 @@ match_quantiles <- function(counts_sub, old_mu, old_phi, new_mu, new_phi){
       }else{
         tmp_p <- pnbinom(counts_sub[a, b]-1, mu=old_mu[a, b], size=1/old_phi[a])
         if(abs(tmp_p-1)<1e-4){
-          new_counts_sub[a,b] <- counts_sub[a, b]  
+          new_counts_sub[a,b] <- counts_sub[a, b]
           # for outlier count, if p==1, will return Inf values -> use original count instead
         }else{
           new_counts_sub[a,b] <- 1+qnbinom(tmp_p, mu=new_mu[a, b], size=1/new_phi[a])

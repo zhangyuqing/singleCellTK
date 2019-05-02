@@ -1007,50 +1007,45 @@ shinyServer(function(input, output, session) {
           
           if (input$batchMethod == "ComBat"){
             vals$combatstatus <- "ComBat Complete"
+            output$combatStatus <- renderUI({
+              h2(vals$combatstatus)
+            })
+            output$combatBoxplot <- renderPlot({
+              if (!is.null(vals$counts) &
+                  !is.null(input$combatBatchVar) &
+                  !is.null(input$combatConditionVar) &
+                  input$combatBatchVar != "none" &
+                  input$combatConditionVar != "none" &
+                  input$combatBatchVar != input$combatConditionVar){
+                plotBatchVariance(inSCE = vals$counts,
+                                  useAssay = input$combatSaveAssay,
+                                  batch = input$combatBatchVar,
+                                  condition = input$combatConditionVar)
+              }
+            }, height = 600)
           } else if (input$batchMethod == "ComBat-Seq") {
             vals$combatseqstatus <- "ComBat-Seq Complete"
+            output$combatseqStatus <- renderUI({
+              h2(vals$combatseqstatus)
+            })
+            output$combatseqBoxplot <- renderPlot({
+              if (!is.null(vals$counts) &
+                  !is.null(input$combatBatchVar) &
+                  !is.null(input$combatConditionVar) &
+                  input$combatBatchVar != "none" &
+                  input$combatConditionVar != "none" &
+                  input$combatBatchVar != input$combatConditionVar){
+                plotBatchVariance(inSCE = vals$counts,
+                                  useAssay = input$combatseqSaveAssay,
+                                  batch = input$combatBatchVar,
+                                  condition = input$combatConditionVar,
+                                  log_dat = TRUE)
+              }
+            }, height = 600)
           }
         } 
       })
     }  
-    
-    if (input$batchMethod == "ComBat"){
-      output$combatStatus <- renderUI({
-        h2(vals$combatstatus)
-      })
-      output$combatBoxplot <- renderPlot({
-        if (!is.null(vals$counts) &
-            !is.null(input$combatBatchVar) &
-            !is.null(input$combatConditionVar) &
-            input$combatBatchVar != "none" &
-            input$combatConditionVar != "none" &
-            input$combatBatchVar != input$combatConditionVar){
-          plotBatchVariance(inSCE = vals$counts,
-                            useAssay = input$combatSaveAssay,
-                            batch = input$combatBatchVar,
-                            condition = input$combatConditionVar)
-        }
-      }, height = 600)
-      
-    } else if (input$batchMethod == "ComBat-Seq"){
-      output$combatseqStatus <- renderUI({
-        h2(vals$combatseqstatus)
-      })
-      output$combatseqBoxplot <- renderPlot({
-        if (!is.null(vals$counts) &
-            !is.null(input$combatBatchVar) &
-            !is.null(input$combatConditionVar) &
-            input$combatBatchVar != "none" &
-            input$combatConditionVar != "none" &
-            input$combatBatchVar != input$combatConditionVar){
-          plotBatchVariance(inSCE = vals$counts,
-                            useAssay = input$combatseqSaveAssay,
-                            batch = input$combatBatchVar,
-                            condition = input$combatConditionVar,
-                            log_dat = TRUE)
-        }
-      }, height = 600)
-    }
   })
   
   observeEvent(input$visBatch, {
@@ -1064,7 +1059,8 @@ shinyServer(function(input, output, session) {
         plotBatchVariance(inSCE = vals$counts,
                           useAssay = input$batchAssay,
                           batch = input$batchVarPlot,
-                          condition = input$conditionVarPlot)
+                          condition = input$conditionVarPlot,
+                          log_dat = is.integer(assay(vals$counts, input$batchAssay)[1,1]))
       }
     }, height = 600)
   })
