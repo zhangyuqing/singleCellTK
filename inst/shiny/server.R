@@ -949,6 +949,7 @@ shinyServer(function(input, output, session) {
     vals$visplotobject
   }, height = 600)
 
+  
   #-----------------------------------------------------------------------------
   # Page 4: Batch Effect Diagnostics & Adjustment
   #-----------------------------------------------------------------------------
@@ -960,6 +961,30 @@ shinyServer(function(input, output, session) {
                     unique(sort(colData(vals$counts)[, input$combatBatchVar])))
       }
     }
+  })
+  
+  # svaseq
+  observeEvent(input$svaseq, {
+    withBusyIndicatorServer("svaseq", {
+      all_vars <- c(input$combatBatchVar, input$combatConditionVar, input$combatCovariates)
+      if(length(all_vars)==0){
+        shinyalert::shinyalert("Error!", "Input batch and other covariates (if needed) for this step.", 
+                               type = "error")
+      }
+      print(all_vars)
+      mod1 <- stats::model.matrix(
+        stats::as.formula(paste0("~", paste0(all_vars, collapse = "+"))),
+        data = data.frame(SingleCellExperiment::colData(vals$counts)[, all_vars, drop=FALSE]))
+      mod0 <- cbind(mod1[,1])
+      n_sv <- sva::num.sv(log(assay(vals$counts, "counts")+0.25), mod1)
+      svseq <- sva::svaseq(assay(vals$counts,"counts"), mod=mod1, mod0=mod0, n.sv=n_sv)
+      colnames(svseq$sv) <- paste0("SV", 1:n_sv)
+      colData(vals$counts) <- cbind(colData(vals$counts), DataFrame(svseq$sv))
+      updateColDataNames() 
+      
+      print(head(colData(vals$counts)))
+      #output$SVplot <- renderPlot({})
+    })
   })
   
   observeEvent(input$combatRun, {

@@ -61,6 +61,14 @@ shinyPanelBatchcorrect <- fluidPage(
                 # combat-seq
                 conditionalPanel(
                   condition = sprintf("input['%s'] == 'ComBat-Seq'", "batchMethod"),
+                  
+                  withBusyIndicatorUI(actionButton("svaseq", "Infer Unknown Variation")),
+                  # conditionalPanel(
+                  #   condition = sprintf("input['%s']", "svaseq"),
+                  #   textInput("Nsv", "Enter Number of Surrogate Variables:", "1")
+                  # ),
+                  tags$hr(),
+                  
                   checkboxInput("combatseqShrink", "Use Empirical Bayes Estimation", value=FALSE),
                   conditionalPanel(
                     condition = sprintf("input['%s']", "combatseqShrink"),

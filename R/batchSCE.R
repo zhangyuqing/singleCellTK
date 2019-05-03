@@ -161,7 +161,6 @@ ComBatSeqSCE <- function(inSCE, batch, group=NULL, covariates=NULL,
   }
   if(shrink & is.null(gene.subset.n)){gene.subset.n <- min(nrow(dat)-1, 1000)}
   
-  
   dge_obj <- edgeR::DGEList(counts=dat)
   ## Prepare characteristics on batches
   batch <- as.factor(batch)
@@ -367,9 +366,11 @@ match_quantiles <- function(counts_sub, old_mu, old_phi, new_mu, new_phi){
   # adjust data by quantile matching
   new_counts_sub <- matrix(NA, nrow=nrow(counts_sub), ncol=ncol(counts_sub))
   for(a in 1:nrow(counts_sub)){
+    #print(a)
     for(b in 1:ncol(counts_sub)){
-      if(counts_sub[a, b]==0){
-        new_counts_sub[a,b] <- 0
+      #print(b)
+      if(counts_sub[a, b] <= 1){
+        new_counts_sub[a,b] <- counts_sub[a, b]
       }else{
         tmp_p <- pnbinom(counts_sub[a, b]-1, mu=old_mu[a, b], size=1/old_phi[a])
         if(abs(tmp_p-1)<1e-4){
