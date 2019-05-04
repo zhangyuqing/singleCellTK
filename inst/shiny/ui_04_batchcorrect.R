@@ -11,11 +11,16 @@ shinyPanelBatchcorrect <- fluidPage(
             sidebarLayout(
               sidebarPanel(
                 selectInput("batchAssay", "Select Assay:", currassays),
+                #tags$hr(),
+                
+                selectInput("batchVarPlot", "Select Batch Annotation:", clusterChoice),
+                selectInput("conditionVarPlot", "Select Condition Annotation:", clusterChoice),
+                
+                tags$p("Remove low expression genes within each batch (Recommended):"),
+                withBusyIndicatorUI(actionButton("combatFilter", "Filter")),
+                
                 tags$hr(),
-                         
-                selectInput("batchVarPlot", "Select Batch Annotation:", c("none", clusterChoice)),
-                selectInput("conditionVarPlot", "Select Condition Annotation:", c("none", clusterChoice)),
-                withBusyIndicatorUI(actionButton("visBatch", "Visualize batch effect"))#,
+                withBusyIndicatorUI(actionButton("visBatch", "Visualize Batch Effect"))#,
                 #tags$hr(),
               ),
               mainPanel(
@@ -52,7 +57,7 @@ shinyPanelBatchcorrect <- fluidPage(
                                selected = "Parametric"),
                   checkboxInput("combatMeanOnly", "Correct mean of the batch effect only",
                                 value = FALSE),
-                  checkboxInput("combatRef", "Run reference batch combat:",
+                  checkboxInput("combatRef", "Run reference batch combat",
                                 value = FALSE),
                   uiOutput("selectCombatSeqBatchUI"),
                   textInput("combatSaveAssay", "Assay Name to Use:", value = "combat")
@@ -69,7 +74,7 @@ shinyPanelBatchcorrect <- fluidPage(
                   # ),
                   tags$hr(),
                   
-                  checkboxInput("combatseqShrink", "Use Empirical Bayes Estimation", value=FALSE),
+                  checkboxInput("combatseqShrink", "Use empirical Bayes estimation", value=FALSE),
                   conditionalPanel(
                     condition = sprintf("input['%s']", "combatseqShrink"),
                     textInput("combatseqGeneSubsetN", "Enter Number of Genes for Empirical Bayes:", "100")
@@ -77,7 +82,7 @@ shinyPanelBatchcorrect <- fluidPage(
                   textInput("combatseqSaveAssay", "Assay Name to Use:", value = "combatseq")
                 ),
                 
-                withBusyIndicatorUI(actionButton("combatRun", "Run batch correction"))    
+                withBusyIndicatorUI(actionButton("combatRun", "Run Batch Correction"))    
               ),
               mainPanel(
                 wellPanel(

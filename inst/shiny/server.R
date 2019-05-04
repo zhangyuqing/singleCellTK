@@ -963,6 +963,28 @@ shinyServer(function(input, output, session) {
     }
   })
   
+  # filter genes for batch correction
+  observeEvent(input$combatFilter, {
+    withBusyIndicatorServer("combatFilter", {
+      if(input$batchVarPlot=="none" | is.null(input$batchVarPlot)){
+        shinyalert::shinyalert("Error!", "Select batch variable first.", type = "error")
+      }else{
+        dat_tmp <- SummarizedExperiment::assay(vals$counts, "counts")
+        batch_tmp <- SummarizedExperiment::colData(vals$counts)[, input$batchVarPlot]
+        rows_keep <- lapply(levels(factor(batch_tmp)), function(b){
+          return(which(apply(dat_tmp[, batch_tmp==b], 1, function(x){sum(x==0)<0.9*length(x)})))
+        })
+        rows_keep <- Reduce(intersect, rows_keep)
+        if(!is.null(SingleCellExperiment::isSpike(vals$counts))){
+          rows_keep <- rows_keep | SingleCellExperiment::isSpike(vals$counts)
+        }
+        vals$counts <- vals$counts[1:nrow(vals$counts) %in% rows_keep, ]
+        print(dim(vals$counts))
+        rm(dat_tmp, batch_tmp, rows_keep)
+      }
+    })
+  })
+  
   # svaseq
   observeEvent(input$svaseq, {
     withBusyIndicatorServer("svaseq", {
