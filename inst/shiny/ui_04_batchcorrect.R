@@ -15,17 +15,20 @@ shinyPanelBatchcorrect <- fluidPage(
                 
                 selectInput("batchVarPlot", "Select Batch Annotation:", clusterChoice),
                 selectInput("conditionVarPlot", "Select Condition Annotation:", clusterChoice),
+                selectInput("covariatesPlot", "Select Additional Covariates:", clusterChoice, multiple=TRUE),
                 
                 tags$p("Remove low expression genes within each batch (Recommended):"),
                 withBusyIndicatorUI(actionButton("combatFilter", "Filter")),
                 
                 tags$hr(),
-                withBusyIndicatorUI(actionButton("visBatch", "Visualize Batch Effect"))#,
-                #tags$hr(),
+                selectInput("batchPlotType", "Select Type of Visualization:", 
+                            c("Explained Variation", "Mean Batch Effect Estimates", 
+                              "Dispersion Batch Effect Estimates")),
+                withBusyIndicatorUI(actionButton("visBatch", "Visualize Batch Effect"))
               ),
               mainPanel(
                 wellPanel(
-                  plotOutput("batchBoxplot", height = "600px")      
+                  plotOutput("batchPlot", height = "600px")      
                 )
               )
             )

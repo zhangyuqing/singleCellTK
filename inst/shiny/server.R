@@ -25,7 +25,8 @@ shinyServer(function(input, output, session) {
     diffexBmName = NULL,
     dimRedPlot = NULL,
     dimRedPlot_geneExp = NULL,
-    dendrogram = NULL
+    dendrogram = NULL,
+    batchPlot = NULL
   )
 
   #reactive list to store names of results given by the user.
@@ -51,6 +52,8 @@ shinyServer(function(input, output, session) {
     updateSelectInput(session, "batchVarPlot",
                       choices = c("none", pdataOptions))
     updateSelectInput(session, "conditionVarPlot",
+                      choices = c("none", pdataOptions))
+    updateSelectInput(session, "covariatesPlot",
                       choices = c("none", pdataOptions))
     updateSelectInput(session, "combatBatchVar",
                       choices = pdataOptions)
@@ -1096,23 +1099,28 @@ shinyServer(function(input, output, session) {
   })
   
   observeEvent(input$visBatch, {
-    output$batchBoxplot <- renderPlot({
+    withBusyIndicatorServer('visBatch', {
       if (!is.null(vals$counts) &
           !is.null(input$batchVarPlot) &
           !is.null(input$conditionVarPlot) &
           input$batchVarPlot != "none" &
           input$conditionVarPlot != "none" &
           input$batchVarPlot != input$conditionVarPlot){
-        plotBatchVariance(inSCE = vals$counts,
-                          useAssay = input$batchAssay,
-                          batch = input$batchVarPlot,
-                          condition = input$conditionVarPlot,
-                          log_dat = is.integer(assay(vals$counts, input$batchAssay)[1,1]))
+        vals$batchPlot <- plotBatchEffect(inSCE = vals$counts,
+                                          useAssay = input$batchAssay,
+                                          batch = input$batchVarPlot,
+                                          condition = input$conditionVarPlot,
+                                          covariates = input$covariatesPlot,
+                                          log_dat = is.integer(assay(vals$counts, input$batchAssay)[1,1]),
+                                          method = input$batchPlotType)
       }
-    }, height = 600)
+    })
   })
-
-
+  
+  observe({
+    output$batchPlot <- renderPlot({vals$batchPlot}, height=600)
+  })
+  
 
   #-----------------------------------------------------------------------------
   # Page 5.1: Differential Expression
