@@ -45,7 +45,31 @@ plotBatchEffect <- function(inSCE, useAssay="logcounts", batch,
   return(NULL)
 }
 
-
+#' Plot the percent of the variation that is explained by batch and condition
+#' in the data
+#'
+#' Visualize the percent variation in the data that is explained by batch and
+#' condition if it is given.
+#'
+#' @param inSCE Input SCtkExperiment object. Required
+#' @param useAssay Indicate which assay to use for PCA. Default is "logcounts"
+#' @param batch The column in the annotation data that corresponds to batch.
+#' Required
+#' @param condition The column in the annotation data that corresponds to
+#' condition. Optional
+#' @param log_dat If TRUE log transform the input assay
+#'
+#' @return A boxplot of variation explained by batch, condition, and
+#' batch+condition (if applicable).
+#' @export
+#' @examples
+#' if(requireNamespace("bladderbatch", quietly = TRUE)) {
+#'   library(bladderbatch)
+#'   data(bladderdata)
+#'   dat <- as(as(bladderEset, "SummarizedExperiment"), "SCtkExperiment")
+#'   plotBatchVariance(dat, useAssay="exprs", batch="batch", condition = "cancer")
+#' }
+#'
 plotBatchVariance <- function(inSCE, useAssay="logcounts", batch,
                               condition=NULL, log_dat=FALSE){
   # Plot the percent of the variation that is explained by batch and condition in the data
