@@ -1,56 +1,61 @@
 #' Given a set of genes, return a ggplot of expression
 #' values.
-#' @param visual Type of visualization (PCA, tSNE or UMAP). Default: "PCA"
-#' @param x x coordinate for PCA
-#' @param y y coordinate for PCA
+#'
 #' @param inSCE Input SCtkExperiment object. Required
 #' @param gene genelist to run the method on.
 #' @param binary binary/continuous color for the expression.
 #' @param shape shape parameter for the ggplot.
 #' @param useAssay Indicate which assay to use. The default is "logcounts".
-#' @param reducedDimName a name to store the results of the dimension reduction
+#' @param reducedDimName results name of dimension reduction
 #' coordinates obtained from this method. This is stored in the SingleCellExperiment
 #' object in the reducedDims slot. Required.
+#' @param comp1 label for x-axis
+#' @param comp2 label for y-axis
+#' @param x PCA component to be used for plotting(if applicable).
+#' Default is first PCA component for PCA data and NULL otherwise.
+#' @param y PCA component to be used for plotting(if applicable).
+#' Default is second PCA component for PCA data and NULL otherwise.
 #'
 #' @return A Biomarker plot
 #' @export
 #' @examples
 #' data("mouseBrainSubsetSCE")
-#' plotBiomarker(mouseBrainSubsetSCE, gene="C1qa", shape="level1class")
+#' plotBiomarker(mouseBrainSubsetSCE, gene="C1qa", shape="level1class", reducedDimName="TSNE_counts")
 #'
-plotBiomarker <- function(inSCE, gene, binary="Binary", visual="PCA",
-                          shape="No Shape", x="PC1", y="PC2",
-                          useAssay="counts", reducedDimName="PCA"){
+plotBiomarker <- function(inSCE, gene, binary="Binary",
+                          shape="No Shape",
+                          useAssay="counts", reducedDimName="PCA",
+                          x=NULL, y=NULL,
+                          comp1 = NULL, comp2 = NULL){
   if (shape == "No Shape"){
     shape <- NULL
   }
-  if (visual == "PCA"){
-    if (is.null(SingleCellExperiment::reducedDim(inSCE, reducedDimName))) {
-      inSCE <- getPCA(inSCE, useAssay = useAssay,
-                      reducedDimName = reducedDimName)
-    }
-    axisDf <- data.frame(SingleCellExperiment::reducedDim(inSCE,
-                                                           reducedDimName))
-    variances <- NULL
-    if (class(inSCE) == "SCtkExperiment"){
-      variances <- pcaVariances(inSCE)
-    }
+  variances <- NULL
+  if (class(inSCE) == "SCtkExperiment"){
+    variances <- pcaVariances(inSCE)
   }
-  if (visual == "tSNE"){
-    if (is.null(SingleCellExperiment::reducedDim(inSCE, reducedDimName))) {
-      inSCE <- getTSNE(inSCE, useAssay = useAssay,
-                       reducedDimName = reducedDimName)
-    }
-    axisDf <- data.frame(SingleCellExperiment::reducedDim(inSCE,
-                                                           reducedDimName))
-  }
-  if (visual == "UMAP"){
-    if (is.null(SingleCellExperiment::reducedDim(inSCE, reducedDimName))) {
-      inSCE <- getUMAP(inSCE, useAssay = useAssay,
-                       reducedDimName = reducedDimName)
-    }
+  if(!(reducedDimName %in% names(SingleCellExperiment::reducedDims(inSCE)))){
+    stop("Please supply a correct reducedDimName")
+  } else {
     axisDf <- data.frame(SingleCellExperiment::reducedDim(inSCE,
                                                           reducedDimName))
+  }
+  if (!is.null(x) & !is.null(y)){
+    if (!(x %in% colnames(axisDf))){
+      stop("x dimension ", x, " is not in the reducedDim data")
+    }
+    if (!(y %in% colnames(axisDf))){
+      stop("Y dimension ", y, " is not in the reducedDim data")
+    }
+    xdim <- x
+    ydim <- y
+  } else if (!is.null(comp1) & !is.null(comp2)){
+    x <- comp1
+    y <- comp2
+    colnames(axisDf) <- c(x, y)
+  } else {
+    x <- colnames(axisDf)[1]
+    y <- colnames(axisDf)[2]
   }
   if (length(gene) > 9) {
     gene <- gene[seq_len(9)]
@@ -68,14 +73,13 @@ plotBiomarker <- function(inSCE, gene, binary="Binary", visual="PCA",
     l$expression <- bioDf$expression
     c <- SummarizedExperiment::assay(inSCE, useAssay)[c(geneName), ]
     percent <- round(100 * sum(c > 0) / length(c), 2)
-    if (visual == "PCA"){
-      if (binary == "Binary"){
+    if (binary == "Binary"){
         l$expression <- ifelse(l$expression, "Yes", "No")
         g <- ggplot2::ggplot(l, ggplot2::aes_string(x, y, label = "Sample",
                                                     color = "expression")) +
           ggplot2::geom_point() +
           ggplot2::scale_color_manual(limits = c("Yes", "No"),
-                                      values = c("Blue", "Grey")) +
+                                      values = c("Black", "Grey")) +
           ggplot2::labs(color = "Expression")
       }
       else if (binary == "Continuous"){
@@ -87,7 +91,7 @@ plotBiomarker <- function(inSCE, gene, binary="Binary", visual="PCA",
                                                       color = "expression")) +
             ggplot2::scale_colour_gradient(limits = c(min(l$expression),
                                                       max(l$expression)),
-                                           low = "grey", high = "blue") +
+                                           low = "grey", high = "black") +
             ggplot2::geom_point()
         }
         g <- g + ggplot2::labs(color = "Expression")
@@ -99,73 +103,12 @@ plotBiomarker <- function(inSCE, gene, binary="Binary", visual="PCA",
       if (is.null(variances)){
         g <- g + ggplot2::labs(x = x, y = y)
       } else {
-        g <- g + ggplot2::labs(
-          x = paste0(x, " ", toString(round(variances[x, ] * 100, 2)), "%"),
-          y = paste0(y, " ", toString(round(variances[y, ] * 100, 2)), "%"))
-      }
-    } else if (visual == "tSNE"){
-      if (binary == "Binary"){
-        l$expression <- ifelse(l$expression, "Yes", "No")
-        g <- ggplot2::ggplot(l, ggplot2::aes_string("X1", "X2",
-                                                    label = "Sample",
-                                                    color = "expression")) +
-          ggplot2::geom_point() +
-          ggplot2::scale_color_manual(limits = c("Yes", "No"),
-                                      values = c("blue", "grey")) +
-          ggplot2::labs(color = "Expression")
-      }
-      else if (binary == "Continuous"){
-        if (min(round(l$expression, 6)) == max(round(l$expression, 6))) {
-          g <- ggplot2::ggplot(l, ggplot2::aes_string("X1", "X2",
-                                                      label = "Sample")) +
-            ggplot2::geom_point(color = "grey")
-        } else{
-          g <- ggplot2::ggplot(l, ggplot2::aes_string("X1", "X2",
-                                                      label = "Sample",
-                                                      color = "expression")) +
-            ggplot2::scale_colour_gradient(limits = c(min(l$expression),
-                                                      max(l$expression)),
-                                           low = "grey", high = "blue") +
-            ggplot2::geom_point()
+        if (any(grepl("PC*", colnames(l)))){
+          g <- g + ggplot2::labs(
+            x = paste0(x, " ", toString(round(variances[x, ] * 100, 2)), "%"),
+            y = paste0(y, " ", toString(round(variances[y, ] * 100, 2)), "%"))
         }
-        g <- g + ggplot2::labs(color = "Expression")
       }
-      g <- g +
-        ggplot2::ggtitle(paste(geneName, " - ", percent, "%", " cells",
-                               sep = "")) +
-        ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5))
-    } else if (visual == "UMAP"){
-      if (binary == "Binary"){
-        l$expression <- ifelse(l$expression, "Yes", "No")
-        g <- ggplot2::ggplot(l, ggplot2::aes_string("X1", "X2",
-                                                    label = "Sample",
-                                                    color = "expression")) +
-          ggplot2::geom_point() +
-          ggplot2::scale_color_manual(limits = c("Yes", "No"),
-                                      values = c("blue", "grey")) +
-          ggplot2::labs(color = "Expression")
-      }
-      else if (binary == "Continuous"){
-        if (min(round(l$expression, 6)) == max(round(l$expression, 6))) {
-          g <- ggplot2::ggplot(l, ggplot2::aes_string("X1", "X2",
-                                                      label = "Sample")) +
-            ggplot2::geom_point(color = "grey")
-        } else{
-          g <- ggplot2::ggplot(l, ggplot2::aes_string("X1", "X2",
-                                                      label = "Sample",
-                                                      color = "expression")) +
-            ggplot2::scale_colour_gradient(limits = c(min(l$expression),
-                                                      max(l$expression)),
-                                           low = "grey", high = "blue") +
-            ggplot2::geom_point()
-        }
-        g <- g + ggplot2::labs(color = "Expression")
-      }
-      g <- g +
-        ggplot2::ggtitle(paste(geneName, " - ", percent, "%", " cells",
-                               sep = "")) +
-        ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5))
-    }
     if (!is.null(shape)){
       g <- g + ggplot2::aes_string(shape = "shape") +
         ggplot2::labs(shape = shape)
